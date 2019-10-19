@@ -35,6 +35,10 @@ type Config struct {
 	MemoryRequestToLimitRatio float64
 }
 
+func ConfigLoader() (config *Config, err error) {
+	return
+}
+
 func Convert(config *ClusterResourceOverrideConfig) *Config {
 	return &Config{
 		LimitCPUToMemoryRatio:     float64(config.LimitCPUToMemoryPercent) / 100,

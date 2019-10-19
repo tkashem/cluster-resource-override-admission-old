@@ -3,7 +3,10 @@ package clusterresourceoverride
 import (
 	"errors"
 	"fmt"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"strings"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
@@ -17,13 +20,14 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
+	restclient "k8s.io/client-go/rest"
 )
 
 const (
 	PluginName                        = ""
 	clusterResourceOverrideAnnotation = "autoscaling.openshift.io/cluster-resource-override-enabled"
 	cpuBaseScaleFactor                = 1000.0 / (1024.0 * 1024.0 * 1024.0) // 1000 milliCores per 1GiB
-
+	defaultResyncPeriod = 5 * time.Hour
 )
 
 var (
@@ -31,6 +35,40 @@ var (
 	memFloor      = resource.MustParse("1Mi")
 	BadRequestErr = errors.New("unexpected object")
 )
+
+type ConfigLoaderFunc func() (config *Config, err error)
+
+func NewAdmission(kubeClientConfig *restclient.Config, configLoaderFunc ConfigLoaderFunc) (admission Admission, err error) {
+	config, err := configLoaderFunc()
+	if err != nil {
+		return
+	}
+
+	client, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return
+	}
+
+	factory := informers.NewSharedInformerFactory(client, defaultResyncPeriod)
+	limitRanger, err := limitranger.NewLimitRanger(nil)
+	if err != nil {
+		return
+	}
+
+	limitRanger.SetExternalKubeClientSet(client)
+	limitRanger.SetExternalKubeInformerFactory(factory)
+	limitRangesLister := factory.Core().V1().LimitRanges().Lister()
+	nsLister := factory.Core().V1().Namespaces().Lister()
+
+	admission = &clusterResourceOverridePlugin{
+		config: config,
+		LimitRanger: limitRanger,
+		nsLister: nsLister,
+		limitRangesLister: limitRangesLister,
+	}
+
+	return
+}
 
 type Admission interface {
 	IsApplicable(admissionSpec *admissionv1beta1.AdmissionRequest) bool

@@ -7,6 +7,8 @@ import (
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
+	"sync"
+
 	// "k8s.io/klog"
 	"github.com/openshift/cluster-resource-override-admission/pkg/clusterresourceoverride"
 )
@@ -16,12 +18,30 @@ func main() {
 }
 
 type mutatingHook struct {
+	lock        sync.RWMutex
 	initialized bool
+
 	admission   clusterresourceoverride.Admission
 }
 
 // Initialize is called as a post-start hook
 func (m *mutatingHook) Initialize(kubeClientConfig *restclient.Config, stopCh <-chan struct{}) error {
+	m.lock.Lock()
+	defer func() {
+		m.initialized = true
+		m.lock.Unlock()
+	}()
+
+	if m.initialized {
+		return nil
+	}
+
+	admission, err := clusterresourceoverride.NewAdmission(kubeClientConfig, clusterresourceoverride.ConfigLoader)
+	if err != nil {
+		return err
+	}
+
+	m.admission = admission
 	return nil
 }
 
