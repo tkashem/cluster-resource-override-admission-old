@@ -35,7 +35,7 @@ type Config struct {
 	MemoryRequestToLimitRatio float64
 }
 
-func ConfigLoader() (config *Config, err error) {
+func DefaultConfigLoader() (config *Config, err error) {
 	return
 }
 

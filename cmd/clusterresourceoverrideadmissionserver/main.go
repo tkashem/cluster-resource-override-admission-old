@@ -36,7 +36,7 @@ func (m *mutatingHook) Initialize(kubeClientConfig *restclient.Config, stopCh <-
 		return nil
 	}
 
-	admission, err := clusterresourceoverride.NewAdmission(kubeClientConfig, clusterresourceoverride.ConfigLoader)
+	admission, err := clusterresourceoverride.NewAdmission(kubeClientConfig, clusterresourceoverride.DefaultConfigLoader)
 	if err != nil {
 		return err
 	}

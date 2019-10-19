@@ -10,9 +10,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
-	// "k8s.io/apiserver/pkg/admission"
 	"k8s.io/klog"
-	// "k8s.io/apiserver/pkg/admission"
 	// webhookrequest "k8s.io/apiserver/pkg/admission/plugin/webhook/request"
 	admissionresponse "github.com/openshift/cluster-resource-override-admission/pkg/response"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -60,7 +58,7 @@ func NewAdmission(kubeClientConfig *restclient.Config, configLoaderFunc ConfigLo
 	limitRangesLister := factory.Core().V1().LimitRanges().Lister()
 	nsLister := factory.Core().V1().Namespaces().Lister()
 
-	admission = &clusterResourceOverridePlugin{
+	admission = &clusterResourceOverrideAdmission{
 		config: config,
 		LimitRanger: limitRanger,
 		nsLister: nsLister,
@@ -76,14 +74,14 @@ type Admission interface {
 	Admit(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse
 }
 
-type clusterResourceOverridePlugin struct {
+type clusterResourceOverrideAdmission struct {
 	config            *Config
 	nsLister          corev1listers.NamespaceLister
 	LimitRanger       *limitranger.LimitRanger
 	limitRangesLister corev1listers.LimitRangeLister
 }
 
-func (p *clusterResourceOverridePlugin) IsApplicable(admissionSpec *admissionv1beta1.AdmissionRequest) bool {
+func (p *clusterResourceOverrideAdmission) IsApplicable(admissionSpec *admissionv1beta1.AdmissionRequest) bool {
 	if admissionSpec.Resource.Resource == string(coreapi.ResourcePods) &&
 		admissionSpec.SubResource == "" &&
 		(admissionSpec.Operation == admissionv1beta1.Create || admissionSpec.Operation == admissionv1beta1.Update) {
@@ -94,7 +92,7 @@ func (p *clusterResourceOverridePlugin) IsApplicable(admissionSpec *admissionv1b
 	return false
 }
 
-func (p *clusterResourceOverridePlugin) IsExempt(admissionSpec *admissionv1beta1.AdmissionRequest) (exempt bool, response *admissionv1beta1.AdmissionResponse) {
+func (p *clusterResourceOverrideAdmission) IsExempt(admissionSpec *admissionv1beta1.AdmissionRequest) (exempt bool, response *admissionv1beta1.AdmissionResponse) {
 	pod, ok := admissionSpec.Object.Object.(*coreapi.Pod)
 	if !ok {
 		response = admissionresponse.WithBadRequest(admissionSpec, BadRequestErr)
@@ -127,7 +125,7 @@ func (p *clusterResourceOverridePlugin) IsExempt(admissionSpec *admissionv1beta1
 	return
 }
 
-func (p *clusterResourceOverridePlugin) Admit(request *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
+func (p *clusterResourceOverrideAdmission) Admit(request *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	pod, ok := request.Object.Object.(*coreapi.Pod)
 	if !ok {
 		return admissionresponse.WithBadRequest(request, BadRequestErr)
