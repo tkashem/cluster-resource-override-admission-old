@@ -8,7 +8,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	// "k8s.io/klog"
-	"github.com/openshift/cluster-resource-override-admission/pkg/override"
+	"github.com/openshift/cluster-resource-override-admission/pkg/clusterresourceoverride"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 
 type mutatingHook struct {
 	initialized bool
-	admission override.Admission
+	admission clusterresourceoverride.Admission
 }
 
 // Initialize is called as a post-start hook

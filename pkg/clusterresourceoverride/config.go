@@ -1,4 +1,4 @@
-package override
+package clusterresourceoverride
 
 import (
 	"fmt"
