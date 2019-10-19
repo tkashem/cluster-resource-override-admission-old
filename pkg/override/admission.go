@@ -23,6 +23,7 @@ const (
 	PluginName                        = ""
 	clusterResourceOverrideAnnotation = "autoscaling.openshift.io/cluster-resource-override-enabled"
 	cpuBaseScaleFactor                = 1000.0 / (1024.0 * 1024.0 * 1024.0) // 1000 milliCores per 1GiB
+
 )
 
 var (
