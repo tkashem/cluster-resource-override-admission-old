@@ -3,9 +3,9 @@ package clusterresourceoverride
 import (
 	"encoding/json"
 
+	jsonpatch "gomodules.xyz/jsonpatch/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
-	jsonpatch "gomodules.xyz/jsonpatch/v2"
 )
 
 // Patch takes 2 byte arrays and returns a new response with json patch.

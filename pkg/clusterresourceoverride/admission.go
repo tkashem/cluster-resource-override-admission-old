@@ -1,8 +1,8 @@
 package clusterresourceoverride
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -27,8 +27,8 @@ const (
 )
 
 var (
-	cpuFloor = resource.MustParse("1m")
-	memFloor = resource.MustParse("1Mi")
+	cpuFloor      = resource.MustParse("1m")
+	memFloor      = resource.MustParse("1Mi")
 	BadRequestErr = errors.New("unexpected object")
 )
 

@@ -4,9 +4,9 @@ import (
 	"errors"
 	admissionresponse "github.com/openshift/cluster-resource-override-admission/pkg/response"
 	"github.com/openshift/generic-admission-server/pkg/cmd"
+	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	// "k8s.io/klog"
 	"github.com/openshift/cluster-resource-override-admission/pkg/clusterresourceoverride"
 )
@@ -17,7 +17,7 @@ func main() {
 
 type mutatingHook struct {
 	initialized bool
-	admission clusterresourceoverride.Admission
+	admission   clusterresourceoverride.Admission
 }
 
 // Initialize is called as a post-start hook
@@ -30,16 +30,16 @@ func (m *mutatingHook) Initialize(kubeClientConfig *restclient.Config, stopCh <-
 // Note: this is (usually) not the same as the payload resource!
 func (m *mutatingHook) MutatingResource() (plural schema.GroupVersionResource, singular string) {
 	return schema.GroupVersionResource{
-		Group:    "autoscaling.openshift.io",
-		Version:  "v1",
-		Resource: "clusterresourceoverride",
-	},
-	"clusterresourceoverride"
+			Group:    "autoscaling.openshift.io",
+			Version:  "v1",
+			Resource: "clusterresourceoverride",
+		},
+		"clusterresourceoverride"
 }
 
 // Admit is called to decide whether to accept the admission request. The returned AdmissionResponse may
 // use the Patch field to mutate the object from the passed AdmissionRequest.
-func (m* mutatingHook) Admit(request *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
+func (m *mutatingHook) Admit(request *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	if !m.initialized {
 		return admissionresponse.WithInternalServerError(request, errors.New("not initialized"))
 	}

@@ -2,10 +2,10 @@ package clusterresourceoverride
 
 import (
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
-	corev1 "k8s.io/api/core/v1"
 )
 
 func newMutator(config *Config, nsCPUFloor, nsMemFloor *resource.Quantity) *mutator {
@@ -13,7 +13,7 @@ func newMutator(config *Config, nsCPUFloor, nsMemFloor *resource.Quantity) *muta
 }
 
 type mutator struct {
-	config *Config
+	config     *Config
 	nsCPUFloor *resource.Quantity
 	nsMemFloor *resource.Quantity
 }
