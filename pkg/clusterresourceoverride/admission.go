@@ -3,6 +3,7 @@ package clusterresourceoverride
 import (
 	"errors"
 	"fmt"
+	"github.com/openshift/cluster-resource-override-admission/pkg/limitranger"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"strings"
@@ -16,9 +17,9 @@ import (
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
-	coreapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 	restclient "k8s.io/client-go/rest"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
+	admissionlimitranger "k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 )
 
 const (
@@ -48,7 +49,7 @@ func NewAdmission(kubeClientConfig *restclient.Config, configLoaderFunc ConfigLo
 	}
 
 	factory := informers.NewSharedInformerFactory(client, defaultResyncPeriod)
-	limitRanger, err := limitranger.NewLimitRanger(nil)
+	limitRanger, err := admissionlimitranger.NewLimitRanger(nil)
 	if err != nil {
 		return
 	}
@@ -59,9 +60,9 @@ func NewAdmission(kubeClientConfig *restclient.Config, configLoaderFunc ConfigLo
 	nsLister := factory.Core().V1().Namespaces().Lister()
 
 	admission = &clusterResourceOverrideAdmission{
-		config: config,
-		LimitRanger: limitRanger,
-		nsLister: nsLister,
+		config:            config,
+		limitRangeAdapter: limitranger.NewAdapter(limitRanger),
+		nsLister:          nsLister,
 		limitRangesLister: limitRangesLister,
 	}
 
@@ -77,7 +78,7 @@ type Admission interface {
 type clusterResourceOverrideAdmission struct {
 	config            *Config
 	nsLister          corev1listers.NamespaceLister
-	LimitRanger       *limitranger.LimitRanger
+	limitRangeAdapter *limitranger.Adapter
 	limitRangesLister corev1listers.LimitRangeLister
 }
 
@@ -150,7 +151,9 @@ func (p *clusterResourceOverrideAdmission) Admit(request *admissionv1beta1.Admis
 
 	// Reuse LimitRanger logic to apply limit/req defaults from the project. Ignore validation
 	// errors, assume that LimitRanger will run after this plugin to validate.
-	// TODO: Figure out whether we need to invoke LimitRanger.Admit
+	if err := p.limitRangeAdapter.Admit(request); err != nil {
+		klog.V(5).Infof("%s: error from LimitRanger: %#v", PluginName, err)
+	}
 
 	klog.V(5).Infof("%s: pod limits after LimitRanger: %#v", PluginName, pod.Spec)
 	mutator := newMutator(p.config, nsCPUFloor, nsMemFloor)
